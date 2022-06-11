@@ -2,10 +2,15 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
+
+	pb "ws-agent/io.chef"
+
+	"google.golang.org/grpc"
 )
 
 func main() {
@@ -17,7 +22,16 @@ func main() {
 		os.Exit(0)
 	}()
 
-	for range time.Tick(5 * time.Second) {
-		fmt.Println("tick!")
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", 56001))
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	grpcServer := grpc.NewServer()
+	pb.RegisterChefInfraServer(grpcServer, &chefInfraServer{})
+	log.Printf("GRPC server listening on %v", lis.Addr())
+
+	if err := grpcServer.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
 }
